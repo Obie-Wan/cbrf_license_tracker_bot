@@ -1,4 +1,5 @@
-Telegram bot for tracking CBRF license declines (parses official site info)
+Telegram bot for tracking CBRF license declines.
+Retranslates info from official site into telegram channel.
 
 # Installation
 - Install package with requirements
