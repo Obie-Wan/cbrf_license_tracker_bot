@@ -1,6 +1,6 @@
 Telegram bot for tracking CBRF license declines.
 
-Retranslates info from official site http://cbr.ru into selected telegram channel.
+Retranslates bank licensing info from official site http://cbr.ru into selected telegram channel.
 
 # Installation
 - Install package with requirements
