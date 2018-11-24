@@ -34,8 +34,7 @@ async def get_last(engine, table, limit=5, orderby='id'):
         return results
 
 
-async def get_or_create(engine, table, defaults=None, **kwargs):
-    async with engine.acquire() as conn:
+async def get_or_create(conn, table, defaults=None, **kwargs):
         row = None
         #expressions = {getattr(table.c, k): v for k, v in kwargs.items()}
         results = [x for x in await conn.execute(table.select().where(table.c.url == kwargs['url']))]
@@ -48,7 +47,8 @@ async def get_or_create(engine, table, defaults=None, **kwargs):
             return True
 
 
-def create_sanction(engine, sanction_dict: dict) -> tuple:
-    return get_or_create(engine, BankSanction.__table__, defaults=sanction_dict,
-                         url=sanction_dict['url'])
+async def create_sanction(conn, sanction_dict: dict) -> tuple:
+        return await get_or_create(conn, BankSanction.__table__,
+                                   defaults=sanction_dict,
+                                   url=sanction_dict['url'])
 

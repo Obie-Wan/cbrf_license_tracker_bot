@@ -1,4 +1,8 @@
 from datetime import datetime
+import aiohttp
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class NotifyManager:
@@ -70,8 +74,14 @@ class TelegramNotifier:
                 )
             )
 
-        await self.channel.send_text(
-            'Отозваны лицензии:\r\n\r\n{banks}'.format(
-                banks='\r\n'.join(decline_list)
+        try:
+            await self.channel.send_text(
+                'Отозваны лицензии:\r\n\r\n{banks}'.format(
+                    banks='\r\n'.join(decline_list)
+                )
+
             )
-        )
+        except aiohttp.client_exceptions.ClientConnectorError as e:
+            logger.exception('unable to notify')
+            raise RuntimeError('Unable to notify Telegram dest')
+

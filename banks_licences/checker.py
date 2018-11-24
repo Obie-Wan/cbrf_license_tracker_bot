@@ -63,35 +63,44 @@ async def fetch(url, session):
       raise RuntimeError('unable to fetch data')
 
 
+async def process_data(conn, notify_func, data_dict: dict):
+    """Create db record and notify in single tx
+    """
+    async with conn.begin() as trans:
+        created = await create_sanction(conn, data_dict)
+        if created:
+            await notify_func([data_dict])
+
+
 async def run(engine, notify_manager: NotifyManager):
     """"""
     tasks = []
-    new_item_list = []
     stopped = False
-    logger.info('Started')
 
     await notify_manager.start({'engine': engine})
+    logger.info('Started')
 
     while not stopped:
         async with ClientSession() as session:
-            urls = await get_urls(session)
-            logger.info('fetching %s', urls)
-            for url in urls:
-                task = asyncio.ensure_future(get_check_result(url, session))
-                tasks.append(task)
+            try:
+                urls = await get_urls(session)
+                logger.info('fetching %s', urls)
+                for url in urls:
+                    task = asyncio.ensure_future(get_check_result(url, session))
+                    tasks.append(task)
 
-            responses = await asyncio.gather(*tasks)
-            logging.debug(responses)
+                responses = await asyncio.gather(*tasks)
+                logging.debug(responses)
 
-            for response_dict in responses:
-                if response_dict is not None:
-                    created = await create_sanction(engine, response_dict)
-                    if created:
-                        new_item_list.append(response_dict)
+                async with engine.acquire() as conn:
+                    for response_dict in responses:
+                        if response_dict is not None:
+                            await process_data(conn,
+                                               notify_manager.notify,
+                                               response_dict)
 
-            logger.info('Created %d items', len(new_item_list))
-            await notify_manager.notify(new_item_list)
-            new_item_list = []
+            except RuntimeError:
+                logger.info('Notify call failed, skipping ...')
 
             logger.info('Sleeping ...')
             await asyncio.sleep(settings.SLEEP_INTERVAL)
